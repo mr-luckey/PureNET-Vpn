@@ -29,8 +29,6 @@ class VpnCard extends StatelessWidget {
             Pref.vpn = vpn;
             Get.back();
 
-            // MyDialogs.success(msg: 'Connecting VPN Location...');
-
             if (controller.vpnState.value == VpnEngine.vpnConnected) {
               VpnEngine.stopVpn();
               Future.delayed(
@@ -41,14 +39,13 @@ class VpnCard extends StatelessWidget {
           },
           borderRadius: BorderRadius.circular(15),
           child: ListTile(
+            tileColor: Colors.white,
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-
-            //flag
             leading: Container(
               padding: EdgeInsets.all(.5),
               decoration: BoxDecoration(
-                  border: Border.all(color: Colors.black12),
+                  border: Border.all(color: Color(0xFF004AAD)),
                   borderRadius: BorderRadius.circular(5)),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(5),
@@ -59,20 +56,19 @@ class VpnCard extends StatelessWidget {
                     fit: BoxFit.cover),
               ),
             ),
-
-            //title
-            title: Text(vpn.countryLong),
-
-            //subtitle
+            title: Text(vpn.countryLong,
+                style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFF004AAD))),
             subtitle: Row(
               children: [
-                Icon(Icons.speed_rounded, color: Colors.blue, size: 20),
+                Icon(Icons.speed_rounded, color: Color(0xFF004AAD), size: 20),
                 SizedBox(width: 4),
-                Text(_formatBytes(vpn.speed, 1), style: TextStyle(fontSize: 13))
+                Text(_formatBytes(vpn.speed, 1),
+                    style: TextStyle(color: Color(0xFF004AAD), fontSize: 13))
               ],
             ),
-
-            //trailing
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [

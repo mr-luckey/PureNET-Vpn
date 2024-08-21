@@ -8,11 +8,11 @@ import 'package:flutter/foundation.dart'
 ///
 /// Example:
 /// ```dart
-/// import 'firebase_options.dart';
-/// // ...
-/// await Firebase.initializeApp(
-///   options: DefaultFirebaseOptions.currentPlatform,
-/// );
+// / import 'firebase_options.dart';
+// / // ...
+// / await Firebase.initializeApp(
+// /   options: DefaultFirebaseOptions.currentPlatform,
+// / );
 /// ```
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
@@ -53,10 +53,10 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyB278a0ik31BTSL3w2tgMgSgQQJj7avakM',
-    appId: '1:480415667223:android:6a5177701d3e4bb2e63852',
-    messagingSenderId: '480415667223',
-    projectId: 'freevpn-flutter',
-    storageBucket: 'freevpn-flutter.appspot.com',
+    apiKey: 'AIzaSyApO7bUJTkBGqgL0vgztCDK1tMmOBnYuqw',
+    appId: '1:766359474768:android:b4a68745dbb4484f1bf755',
+    messagingSenderId: '766359474768',
+    projectId: 'pubg-vpn-b9d49',
+    storageBucket: 'pubg-vpn-b9d49.appspot.com',
   );
 }

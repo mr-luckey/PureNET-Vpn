@@ -1,4 +1,4 @@
-package com.harshRajpurohit.freeVpn;
+package com.errorbite.PureNetVPN;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;

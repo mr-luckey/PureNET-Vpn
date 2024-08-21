@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../main.dart';
 
-//card to represent status in home screen
 class HomeCard extends StatelessWidget {
   final String title, subtitle;
   final Widget icon;
@@ -19,24 +18,18 @@ class HomeCard extends StatelessWidget {
         width: mq.width * .45,
         child: Column(
           children: [
-            //icon
             icon,
-
-            //for adding some space
             const SizedBox(height: 6),
-
-            //title
             Text(title,
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
-
-            //for adding some space
+                style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.white)),
             const SizedBox(height: 6),
-
-            //subtitle
             Text(
               subtitle,
               style: TextStyle(
-                  color: Theme.of(context).lightText,
+                  color: Colors.white,
                   fontWeight: FontWeight.w500,
                   fontSize: 12),
             ),

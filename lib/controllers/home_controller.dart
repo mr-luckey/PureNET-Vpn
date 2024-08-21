@@ -22,8 +22,6 @@ class HomeController extends GetxController {
     }
 
     if (vpnState.value == VpnEngine.vpnDisconnected) {
-      // log('\nBefore: ${vpn.value.openVPNConfigDataBase64}');
-
       final data = Base64Decoder().convert(vpn.value.openVPNConfigDataBase64);
       final config = Utf8Decoder().convert(data);
       final vpnConfig = VpnConfig(
@@ -32,9 +30,6 @@ class HomeController extends GetxController {
           password: 'vpn',
           config: config);
 
-      // log('\nAfter: $config');
-
-      //code to show interstitial ad and then connect to vpn
       AdHelper.showInterstitialAd(onComplete: () async {
         await VpnEngine.startVpn(vpnConfig);
       });
@@ -43,11 +38,10 @@ class HomeController extends GetxController {
     }
   }
 
-  // vpn buttons color
   Color get getButtonColor {
     switch (vpnState.value) {
       case VpnEngine.vpnDisconnected:
-        return Colors.blue;
+        return Colors.white;
 
       case VpnEngine.vpnConnected:
         return Colors.green;
@@ -57,7 +51,6 @@ class HomeController extends GetxController {
     }
   }
 
-  // vpn button text
   String get getButtonText {
     switch (vpnState.value) {
       case VpnEngine.vpnDisconnected:

@@ -19,7 +19,7 @@ class NetworkTestScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: Text('Network Test Screen')),
 
-      //refresh button
+
       floatingActionButton: Padding(
         padding: const EdgeInsets.only(bottom: 10, right: 10),
         child: FloatingActionButton(
@@ -39,7 +39,7 @@ class NetworkTestScreen extends StatelessWidget {
                 top: mq.height * .01,
                 bottom: mq.height * .1),
             children: [
-              //ip
+
               NetworkCard(
                   data: NetworkData(
                       title: 'IP Address',
@@ -47,14 +47,14 @@ class NetworkTestScreen extends StatelessWidget {
                       icon: Icon(CupertinoIcons.location_solid,
                           color: Colors.blue))),
 
-              //isp
+
               NetworkCard(
                   data: NetworkData(
                       title: 'Internet Provider',
                       subtitle: ipData.value.isp,
                       icon: Icon(Icons.business, color: Colors.orange))),
 
-              //location
+
               NetworkCard(
                   data: NetworkData(
                       title: 'Location',
@@ -63,7 +63,7 @@ class NetworkTestScreen extends StatelessWidget {
                           : '${ipData.value.city}, ${ipData.value.regionName}, ${ipData.value.country}',
                       icon: Icon(CupertinoIcons.location, color: Colors.pink))),
 
-              //pin code
+
               NetworkCard(
                   data: NetworkData(
                       title: 'Pin-code',
@@ -71,7 +71,7 @@ class NetworkTestScreen extends StatelessWidget {
                       icon: Icon(CupertinoIcons.location_solid,
                           color: Colors.cyan))),
 
-              //timezone
+
               NetworkCard(
                   data: NetworkData(
                       title: 'Timezone',

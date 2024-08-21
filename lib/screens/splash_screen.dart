@@ -18,46 +18,29 @@ class _SplashScreenState extends State<SplashScreen> {
   void initState() {
     super.initState();
     Future.delayed(Duration(milliseconds: 1500), () {
-      //exit full-screen
+
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
 
       AdHelper.precacheInterstitialAd();
       AdHelper.precacheNativeAd();
 
-      //navigate to home
+
       Get.off(() => HomeScreen());
-      // Navigator.pushReplacement(
-      //     context, MaterialPageRoute(builder: (_) => HomeScreen()));
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    //initializing media query (for getting device screen size)
+
     mq = MediaQuery.of(context).size;
 
     return Scaffold(
-      body: Stack(
-        children: [
-          //app logo
-          Positioned(
-              left: mq.width * .3,
-              top: mq.height * .2,
-              width: mq.width * .4,
-              child: Image.asset('assets/images/logo.png')),
-
-          //label
-          Positioned(
-              bottom: mq.height * .15,
-              width: mq.width,
-              child: Text(
-                'MADE IN INDIA WITH ❤️',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                    color: Theme.of(context).lightText, letterSpacing: 1),
-              ))
-        ],
-      ),
+      backgroundColor: Color(0x004AAD),
+      body: Container(
+        color: Color(0xFF004AAD),
+          height: Get.height,
+          width: Get.width,
+          child: Center(child: Image.asset('assets/images/applogo5.png'))),
     );
   }
 }
