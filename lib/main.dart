@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:vpn_basic_project/services/ads_helper.dart';
 
-import 'helpers/ad_helper.dart';
 import 'helpers/config.dart';
 import 'helpers/pref.dart';
 import 'screens/splash_screen.dart';
+import 'services/reward_ad_service.dart';
 
 late Size mq;
 
@@ -19,7 +21,9 @@ Future<void> main() async {
 
   await Pref.initializeHive();
 
-  // await AdHelper.initAds();
+  await MobileAds.instance.initialize();
+  AdManager().initialize();
+  RewardAdService().initialize();
 
   SystemChrome.setPreferredOrientations(
       [DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]).then((v) {
