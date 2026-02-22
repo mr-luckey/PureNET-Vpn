@@ -56,7 +56,10 @@ public class OpenVPNThread implements Runnable {
     }
 
     public void stopProcess() {
-        mProcess.destroy();
+        if (mProcess != null) {
+            mProcess.destroy();
+            mProcess = null;
+        }
     }
 
     void setReplaceConnection()
@@ -67,7 +70,12 @@ public class OpenVPNThread implements Runnable {
     @Override
     public void run() {
         try {
-            Log.i(TAG, "Starting openvpn");
+            Log.i(TAG, "[DEBUG] OpenVPNThread.run: Starting openvpn");
+            if (mArgv != null) {
+                for (int i = 0; i < mArgv.length; i++) {
+                    Log.i(TAG, "[DEBUG] OpenVPN argv[" + i + "]=" + mArgv[i]);
+                }
+            }
             startOpenVPNThreadArgs(mArgv);
             Log.i(TAG, "OpenVPN process exited");
         } catch (Exception e) {
@@ -76,8 +84,10 @@ public class OpenVPNThread implements Runnable {
         } finally {
             int exitvalue = 0;
             try {
-                if (mProcess != null)
+                if (mProcess != null) {
                     exitvalue = mProcess.waitFor();
+                    Log.i(TAG, "[DEBUG] OpenVPN process exit value=" + exitvalue);
+                }
             } catch (IllegalThreadStateException ite) {
                 VpnStatus.logError("Illegal Thread state: " + ite.getLocalizedMessage());
             } catch (InterruptedException ie) {
@@ -125,8 +135,11 @@ public class OpenVPNThread implements Runnable {
     }
 
     public static boolean stop(){
-        mService.openvpnStopped();
-        mProcess.destroy();
+        if (mService != null) mService.openvpnStopped();
+        if (mProcess != null) {
+            mProcess.destroy();
+            mProcess = null;
+        }
         return true;
     }
 
@@ -143,18 +156,30 @@ public class OpenVPNThread implements Runnable {
         pb.environment().put("LD_LIBRARY_PATH", lbpath);
         pb.environment().put("TMPDIR", mTmpDir);
 
+        // Run from config directory so OpenVPN can resolve relative paths
+        pb.directory(new java.io.File(mTmpDir));
+
         pb.redirectErrorStream(true);
         try {
+            Log.i(TAG, "[DEBUG] OpenVPNThread: ProcessBuilder.start() LD_LIBRARY_PATH=" + lbpath);
             mProcess = pb.start();
-            // Close the output, since we don't need it
-            mProcess.getOutputStream().close();
+            // Do NOT close stdin - some OpenVPN builds exit when stdin is closed (EOF)
             InputStream in = mProcess.getInputStream();
             BufferedReader br = new BufferedReader(new InputStreamReader(in));
 
+            int lineCount = 0;
             while (true) {
                 String logline = br.readLine();
-                if (logline == null)
+                if (logline == null) {
+                    int exitVal = -999;
+                    try {
+                        if (mProcess != null) exitVal = mProcess.exitValue();
+                    } catch (IllegalThreadStateException e) { /* still running */ }
+                    Log.i(TAG, "[DEBUG] OpenVPN process closed output after " + lineCount + " lines, exitValue=" + exitVal);
                     return;
+                }
+                lineCount++;
+                if (lineCount <= 20) Log.i(TAG, "[DEBUG] OpenVPN out: " + logline);
 
                 if (logline.startsWith(DUMP_PATH_STRING))
                     mDumpPath = logline.substring(DUMP_PATH_STRING.length());
@@ -207,8 +232,18 @@ public class OpenVPNThread implements Runnable {
     }
 
     private String genLibraryPath(String[] argv, ProcessBuilder pb) {
-        // Hack until I find a good way to get the real library path
-        String applibpath = argv[0].replaceFirst("/cache/.*$", "/lib");
+        // LD_LIBRARY_PATH must contain directory paths, not file paths.
+        // argv[0] on Android P+ is .../lib/arm64/libovpnexec.so - use its parent directory.
+        // For older cache paths like .../cache/c_pie_openvpn.arm64, convert to .../lib.
+        String binaryPath = argv[0];
+        String applibpath;
+        if (binaryPath.contains("/cache/")) {
+            applibpath = binaryPath.replaceFirst("/cache/.*$", "/lib");
+        } else {
+            int lastSlash = binaryPath.lastIndexOf('/');
+            applibpath = (lastSlash > 0) ? binaryPath.substring(0, lastSlash) : mNativeDir;
+        }
+        Log.i(TAG, "[DEBUG] genLibraryPath: binary=" + binaryPath + " -> libpath=" + applibpath);
 
         String lbpath = pb.environment().get("LD_LIBRARY_PATH");
         if (lbpath == null)

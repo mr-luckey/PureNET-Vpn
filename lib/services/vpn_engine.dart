@@ -21,8 +21,8 @@ class VpnEngine {
 
 
   static Future<void> startVpn(VpnConfig vpnConfig) async {
-
-    return MethodChannel(_methodChannelVpnControl).invokeMethod(
+    print('[DEBUG] VpnEngine.startVpn: ENTRY - country=${vpnConfig.country}');
+    final result = MethodChannel(_methodChannelVpnControl).invokeMethod(
       "start",
       {
         "config": vpnConfig.config,
@@ -31,11 +31,17 @@ class VpnEngine {
         "password": vpnConfig.password,
       },
     );
+    print('[DEBUG] VpnEngine.startVpn: DONE - result=$result');
+    return result;
   }
 
 
-  static Future<void> stopVpn() =>
-      MethodChannel(_methodChannelVpnControl).invokeMethod("stop");
+  static Future<void> stopVpn() async {
+    print('[DEBUG] VpnEngine.stopVpn: ENTRY');
+    final result = MethodChannel(_methodChannelVpnControl).invokeMethod("stop");
+    print('[DEBUG] VpnEngine.stopVpn: DONE');
+    return result;
+  }
 
 
   static Future<void> openKillSwitch() =>

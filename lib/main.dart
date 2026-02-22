@@ -19,7 +19,7 @@ Future<void> main() async {
 
   await Pref.initializeHive();
 
-  await AdHelper.initAds();
+  // await AdHelper.initAds();
 
   SystemChrome.setPreferredOrientations(
       [DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]).then((v) {

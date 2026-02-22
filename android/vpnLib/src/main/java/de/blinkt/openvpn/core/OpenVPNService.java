@@ -18,6 +18,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.content.pm.ServiceInfo;
 import android.content.pm.ShortcutManager;
 import android.content.res.Configuration;
 import android.content.res.Resources;
@@ -361,7 +362,11 @@ public class OpenVPNService extends VpnService implements StateListener, Callbac
 
             mNotificationManager.notify(notificationId, notification);
 
-            startForeground(notificationId, notification);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                startForeground(notificationId, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE);
+            } else {
+                startForeground(notificationId, notification);
+            }
 
             if (lastChannel != null && !channel.equals(lastChannel)) {
                 // Cancel old notification
@@ -538,6 +543,7 @@ public class OpenVPNService extends VpnService implements StateListener, Callbac
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        Log.d("OpenVPNService", "[DEBUG] onStartCommand: action=" + (intent != null ? intent.getAction() : "null"));
 
         if (intent != null && intent.getBooleanExtra(ALWAYS_SHOW_NOTIFICATION, false))
             mNotificationAlwaysVisible = true;
@@ -584,14 +590,17 @@ public class OpenVPNService extends VpnService implements StateListener, Callbac
         if (intent != null && intent.hasExtra(getPackageName() + ".profileUUID")) {
             String profileUUID = intent.getStringExtra(getPackageName() + ".profileUUID");
             int profileVersion = intent.getIntExtra(getPackageName() + ".profileVersion", 0);
+            Log.d("OpenVPNService", "[DEBUG] Got profile from intent: uuid=" + profileUUID + " version=" + profileVersion);
             // Try for 10s to get current version of the profile
             mProfile = ProfileManager.get(this, profileUUID, profileVersion, 100);
+            Log.d("OpenVPNService", "[DEBUG] ProfileManager.get returned: " + (mProfile != null ? "OK" : "null"));
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N_MR1) {
                 updateShortCutUsage(mProfile);
             }
 
         } else {
             /* The intent is null when we are set as always-on or the service has been restarted. */
+            Log.d("OpenVPNService", "[DEBUG] No profileUUID in intent, using getLastConnectedProfile");
             mProfile = ProfileManager.getLastConnectedProfile(this);
             VpnStatus.logInfo(R.string.service_restarted);
 
@@ -640,7 +649,20 @@ public class OpenVPNService extends VpnService implements StateListener, Callbac
 
     private void startOpenVPN() {
         try {
+            String configPath = VPNLaunchHelper.getConfigFilePath(this);
+            Log.d("OpenVPNService", "[DEBUG] startOpenVPN: config path=" + configPath);
             mProfile.writeConfigFile(this);
+            java.io.File cfgFile = new java.io.File(configPath);
+            Log.d("OpenVPNService", "[DEBUG] startOpenVPN: config file exists=" + cfgFile.exists() + " size=" + cfgFile.length());
+            if (cfgFile.exists()) {
+                try {
+                    String cfg = new String(java.nio.file.Files.readAllBytes(cfgFile.toPath()));
+                    String preview = cfg.length() > 800 ? cfg.substring(0, 800) + "..." : cfg;
+                    Log.d("OpenVPNService", "[DEBUG] config preview (first 800 chars):\n" + preview);
+                } catch (Exception e) {
+                    Log.e("OpenVPNService", "[DEBUG] Could not read config for debug", e);
+                }
+            }
         } catch (IOException e) {
             VpnStatus.logException("Error writing config file", e);
             endVpnService();

@@ -89,6 +89,10 @@ public class VPNLaunchHelper {
         args.add("--config");
         args.add(getConfigFilePath(c));
 
+        // Extra verbosity for debugging connection issues
+        args.add("--verb");
+        args.add("6");
+
         return args.toArray(new String[args.size()]);
     }
 
@@ -131,8 +135,10 @@ public class VPNLaunchHelper {
 
 
     public static void startOpenVpn(VpnProfile startprofile, Context context) {
+        android.util.Log.d("VPNLaunchHelper", "[DEBUG] startOpenVpn: ENTRY");
         Intent startVPN = startprofile.prepareStartService(context);
         if (startVPN != null) {
+            android.util.Log.d("VPNLaunchHelper", "[DEBUG] startOpenVpn: starting foreground service");
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
                 //noinspection NewApi
                 context.startForegroundService(startVPN);

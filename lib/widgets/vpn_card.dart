@@ -27,7 +27,7 @@ class VpnCard extends StatelessWidget {
           onTap: () {
             controller.vpn.value = vpn;
             Pref.vpn = vpn;
-            Get.back();
+            Get.back(closeOverlays: false);
 
             if (controller.vpnState.value == VpnEngine.vpnConnected) {
               VpnEngine.stopVpn();

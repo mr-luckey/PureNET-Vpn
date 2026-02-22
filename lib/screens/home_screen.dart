@@ -23,6 +23,7 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     VpnEngine.vpnStageSnapshot().listen((event) {
+      print('[DEBUG] home_screen: vpnStage event=$event');
       _controller.vpnState.value = event;
     });
 
@@ -167,6 +168,7 @@ class HomeScreen extends StatelessWidget {
             button: true,
             child: InkWell(
               onTap: () {
+                print('[DEBUG] home_screen: Tap to Connect button pressed');
                 _controller.connectToVpn();
               },
               borderRadius: BorderRadius.circular(100),
@@ -244,24 +246,25 @@ class HomeScreen extends StatelessWidget {
                 children: [
                   Icon(CupertinoIcons.globe, color: Colors.white, size: 28),
                   SizedBox(width: 10),
-                  Obx(() {
-                    final locationText =
-                        _controller.vpn.value.countryLong.isNotEmpty
-                            ? 'Change Location: ' +
-                                _controller.vpn.value.countryLong
-                            : 'No server selected';
-                    return Text(
-                      locationText,
-                      // _controller.vpn.value.countryLong,
-                      // 'Change Location: ${_countryController.selectedCountry}',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    );
-                  }),
-                  Spacer(),
+                  Expanded(
+                    child: Obx(() {
+                      final locationText =
+                          _controller.vpn.value.countryLong.isNotEmpty
+                              ? 'Change Location: ' +
+                                  _controller.vpn.value.countryLong
+                              : 'No server selected';
+                      return Text(
+                        locationText,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      );
+                    }),
+                  ),
                   CircleAvatar(
                     backgroundColor: Colors.white,
                     child: Icon(Icons.keyboard_arrow_right_rounded,

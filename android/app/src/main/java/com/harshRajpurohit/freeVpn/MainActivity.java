@@ -153,12 +153,16 @@ public class MainActivity extends FlutterActivity {
 
         vpnControlMethod = new MethodChannel(flutterEngine.getDartExecutor().getBinaryMessenger(), METHOD_CHANNEL_VPN_CONTROL);
         vpnControlMethod.setMethodCallHandler((call, result) -> {
+            Log.d(TAG, "[DEBUG] MethodChannel call: " + call.method);
             switch (call.method) {
                 case "stop":
+                    Log.d(TAG, "[DEBUG] MethodChannel stop: calling OpenVPNThread.stop()");
                     OpenVPNThread.stop();
                     setStage("disconnected");
+                    result.success(null);
                     break;
                 case "start":
+                    Log.d(TAG, "[DEBUG] MethodChannel start: parsing config...");
                     config = call.argument("config");
                     name = call.argument("country");
                     username = call.argument("username");
@@ -170,11 +174,14 @@ public class MainActivity extends FlutterActivity {
                     bypassPackages = call.argument("bypass_packages");
 
                     if (config == null || name == null) {
-                        Log.e(TAG, "Config not valid!");
+                        Log.e(TAG, "[DEBUG] Config not valid! config=null?" + (config==null) + " name=null?" + (name==null));
+                        result.error("INVALID_CONFIG", "Config or country is null", null);
                         return;
                     }
+                    Log.d(TAG, "[DEBUG] Config OK, country=" + name + ", configLen=" + (config != null ? config.length() : 0));
 
                     prepareVPN();
+                    result.success(null);
                     break;
                 case "refresh":
                     updateVPNStages();
@@ -197,6 +204,7 @@ public class MainActivity extends FlutterActivity {
     }
 
     private void prepareVPN() {
+        Log.d(TAG, "[DEBUG] prepareVPN: isConnected=" + isConnected());
         if (isConnected()) {
             setStage("prepare");
 
@@ -211,6 +219,7 @@ public class MainActivity extends FlutterActivity {
             }
 
             Intent vpnIntent = VpnService.prepare(this);
+            Log.d(TAG, "[DEBUG] prepareVPN: VpnService.prepare returned " + (vpnIntent != null ? "intent (need permission)" : "null (permission OK)"));
             if (vpnIntent != null) startActivityForResult(vpnIntent, VPN_REQUEST_ID);
             else startVPN();
         } else {
@@ -219,11 +228,20 @@ public class MainActivity extends FlutterActivity {
     }
 
     private void startVPN() {
+        Log.d(TAG, "[DEBUG] startVPN: ENTRY");
         try {
             setStage("connecting");
 
             if (vpnProfile.checkProfile(this) != de.blinkt.openvpn.R.string.no_error_found) {
                 throw new RemoteException(getString(vpnProfile.checkProfile(this)));
+            }
+            
+
+            // VpnGate requires username/password. ConfigParser leaves auth-type as TYPE_CERTIFICATES
+            // because vpngate configs have #auth-user-pass commented. Force userpass+cert so
+            // getConfigFile() writes "auth-user-pass" and credentials are sent.
+            if (username != null && !username.isEmpty() && password != null && !password.isEmpty()) {
+                vpnProfile.mAuthenticationType = de.blinkt.openvpn.VpnProfile.TYPE_USERPASS_CERTIFICATES;
             }
             vpnProfile.mName = name;
             vpnProfile.mProfileCreator = getPackageName();
@@ -242,6 +260,7 @@ public class MainActivity extends FlutterActivity {
             }
 
             ProfileManager.setTemporaryProfile(this, vpnProfile);
+            Log.d(TAG, "[DEBUG] startVPN: calling VPNLaunchHelper.startOpenVpn");
             VPNLaunchHelper.startOpenVpn(vpnProfile, this);
         } catch (RemoteException e) {
             setStage("disconnected");

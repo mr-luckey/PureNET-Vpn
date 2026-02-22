@@ -1,7 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
+// import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:lottie/lottie.dart';
 
 import '../controllers/location_controller.dart';
@@ -14,13 +14,13 @@ class LocationScreen extends StatelessWidget {
   LocationScreen({super.key});
 
   final _controller = LocationController();
-  final _adController = NativeAdController();
+  // final _adController = NativeAdController();
 
   @override
   Widget build(BuildContext context) {
     if (_controller.vpnList.isEmpty) _controller.getVpnData();
 
-    _adController.ad = AdHelper.loadNativeAd(adController: _adController);
+    // _adController.ad = AdHelper.loadNativeAd(adController: _adController);
 
     return Stack(
       children: [
@@ -40,12 +40,12 @@ class LocationScreen extends StatelessWidget {
             //   backgroundColor: Color(0xFF004AAD),
             //   title: Text('VPN Locations (${_controller.vpnList.length})'),
             // ),
-            bottomNavigationBar:
-                _adController.ad != null && _adController.adLoaded.isTrue
-                    ? SafeArea(
-                        child: SizedBox(
-                            height: 85, child: AdWidget(ad: _adController.ad!)))
-                    : null,
+            // bottomNavigationBar:
+            //     _adController.ad != null && _adController.adLoaded.isTrue
+            //         ? SafeArea(
+            //             child: SizedBox(
+            //                 height: 85, child: AdWidget(ad: _adController.ad!)))
+            //         : null,
             floatingActionButton: Padding(
               padding: const EdgeInsets.only(bottom: 10, right: 10),
               child: FloatingActionButton(
