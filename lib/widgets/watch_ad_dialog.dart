@@ -14,13 +14,18 @@ class WatchAdDialog extends StatelessWidget {
       content: Text('Watch an Ad to Change App Theme.'),
       actions: [
         CupertinoDialogAction(
-            isDefaultAction: true,
-            textStyle: TextStyle(color: Colors.green),
-            child: Text('Watch Ad'),
-            onPressed: () {
-              Get.back();
-              onComplete();
-            }),
+          isDefaultAction: true,
+          textStyle: TextStyle(color: Colors.green),
+          child: Text('Watch Ad'),
+          onPressed: () {
+            Get.back();
+            onComplete();
+          },
+        ),
+        CupertinoDialogAction(
+          child: Text('Cancel'),
+          onPressed: () => Get.back(),
+        ),
       ],
     );
   }

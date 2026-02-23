@@ -21,9 +21,9 @@ class _SplashScreenState extends State<SplashScreen> {
 
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
 
-      // AdHelper.precacheInterstitialAd();
-      // AdHelper.precacheNativeAd();
-
+      AdHelper.precacheInterstitialAd();
+      AdHelper.precacheNativeAd();
+      AdHelper.precacheRewardedAd();
 
       Get.off(() => HomeScreen());
     });

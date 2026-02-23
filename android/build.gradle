@@ -12,6 +12,24 @@ subprojects {
 subprojects {
     project.evaluationDependsOn(':app')
 }
+subprojects { subproject ->
+    def setNamespace = {
+        if (subproject.plugins.hasPlugin("com.android.library") && subproject.android.namespace == null) {
+            def manifest = file("${subproject.projectDir}/src/main/AndroidManifest.xml")
+            if (manifest.exists()) {
+                def pkg = new XmlParser().parse(manifest).attribute('package')
+                if (pkg != null) {
+                    subproject.android.namespace = pkg
+                }
+            }
+        }
+    }
+    if (subproject.state.executed) {
+        setNamespace()
+    } else {
+        subproject.afterEvaluate setNamespace
+    }
+}
 
 tasks.register("clean", Delete) {
     delete rootProject.buildDir

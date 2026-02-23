@@ -1,16 +1,20 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-
 import 'package:get/get.dart';
 import 'package:get/get_state_manager/get_state_manager.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import '../controllers/home_controller.dart';
+import '../controllers/native_ad_controller.dart';
+import '../helpers/ad_helper.dart';
+import '../helpers/config.dart';
 import '../main.dart';
-
 import '../models/vpn_status.dart';
 import '../services/vpn_engine.dart';
+import '../helpers/pref.dart';
 import '../widgets/count_down_timer.dart';
 import '../widgets/home_card.dart';
+import '../widgets/watch_ad_dialog.dart';
 import 'location_screen.dart';
 import 'network_test_screen.dart';
 
@@ -26,6 +30,13 @@ class HomeScreen extends StatelessWidget {
       print('[DEBUG] home_screen: vpnStage event=$event');
       _controller.vpnState.value = event;
     });
+
+    final _adController = Get.put(NativeAdController(), tag: 'home');
+    if (!Config.hideAds &&
+        _adController.ad == null &&
+        !_adController.adLoaded.value) {
+      AdHelper.loadNativeAd(adController: _adController);
+    }
 
     return Stack(
       children: [
@@ -57,8 +68,28 @@ class HomeScreen extends StatelessWidget {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        SizedBox(
-                          width: Get.width * .17,
+                        IconButton(
+                          padding: EdgeInsets.only(left: 8),
+                          onPressed: () {
+                            Get.dialog(
+                              WatchAdDialog(
+                                onComplete: () {
+                                  AdHelper.showRewardedAd(
+                                    onComplete: () {
+                                      Pref.isDarkMode = !Pref.isDarkMode;
+                                      Get.forceAppUpdate();
+                                    },
+                                    onSkipped: () {},
+                                  );
+                                },
+                              ),
+                            );
+                          },
+                          icon: Icon(
+                            Icons.brightness_6_rounded,
+                            size: 27,
+                            color: Colors.white,
+                          ),
                         ),
                         Text('PureNet VPN',
                             style: TextStyle(
@@ -154,11 +185,27 @@ class HomeScreen extends StatelessWidget {
                                         Image.asset("assets/images/logo3.png")),
                               ),
                             ],
-                          ))
+                          )),
+                  SizedBox(height: 24),
+                  Obx(() => _nativeAdSection(_adController)),
                 ]),
           ),
         )
       ],
+    );
+  }
+
+  Widget _nativeAdSection(NativeAdController adController) {
+    if (Config.hideAds ||
+        adController.ad == null ||
+        !adController.adLoaded.value) {
+      return SizedBox.shrink();
+    }
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: mq.width * .04),
+      child: SizedBox(
+          height: 85,
+          child: AdWidget(ad: adController.ad!)),
     );
   }
 
