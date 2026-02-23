@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/route_manager.dart';
 
+import '../helpers/ad_helper.dart';
 import '../main.dart';
 import 'home_screen.dart';
 
@@ -19,6 +20,10 @@ class _SplashScreenState extends State<SplashScreen> {
     Future.delayed(Duration(milliseconds: 1500), () {
 
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+
+      // AdHelper.precacheInterstitialAd();
+      // AdHelper.precacheNativeAd();
+
 
       Get.off(() => HomeScreen());
     });

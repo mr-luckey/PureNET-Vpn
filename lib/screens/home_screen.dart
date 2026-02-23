@@ -1,11 +1,8 @@
-import 'dart:async';
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import 'package:get/get.dart';
 import 'package:get/get_state_manager/get_state_manager.dart';
-import 'package:vpn_basic_project/services/ads_helper.dart';
 
 import '../controllers/home_controller.dart';
 import '../main.dart';
@@ -17,35 +14,11 @@ import '../widgets/home_card.dart';
 import 'location_screen.dart';
 import 'network_test_screen.dart';
 
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends StatelessWidget {
   // final CountryController _countryController = Get.put(CountryController());
   HomeScreen({super.key});
 
-  @override
-  State<HomeScreen> createState() => _HomeScreenState();
-}
-
-class _HomeScreenState extends State<HomeScreen> {
-  Timer? _adTimer;
-  final AdManager _adManager = AdManager();
   final _controller = Get.put(HomeController());
-  @override
-  void initState() {
-    super.initState();
-
-    // Show ad every 5 minutes (300 seconds) - reasonable frequency
-    _adTimer = Timer.periodic(const Duration(seconds: 120), (Timer timer) {
-      if (_adManager.isAdReady() && _adManager.canShowAd()) {
-        _adManager.showCustomInterstitialAd(context);
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _adTimer?.cancel();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
