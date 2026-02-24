@@ -12,16 +12,51 @@ class Config {
 
   /// Google's sample ad unit IDs for testing (Android & iOS).
   /// See: https://developers.google.com/admob/android/test-ads
-  static const String testInterstitialAd = 'ca-app-pub-3940256099942544/1033173712';
-  static const String testRewardedAd = 'ca-app-pub-3940256099942544/5224354917';
-  static const String testNativeAd = 'ca-app-pub-3940256099942544/2247696110';
+  static const String testInterstitialAd =
+      'ca-app-pub-5561438827097019/2225776147';
+  static const String testRewardedAd = 'ca-app-pub-5561438827097019/9721122784';
+  static const String testNativeAd = 'ca-app-pub-5561438827097019/4064278486';
+
+  // ---------------------------------------------------------------------------
+  // Separate ID list for each ad type (tried in order until one loads).
+  // Add more IDs to any list for fallback.
+  // ---------------------------------------------------------------------------
+
+  /// Interstitial ad unit IDs.
+  static const List<String> interstitialAdIdList = [
+    'ca-app-pub-5561438827097019/6690441826',
+    'ca-app-pub-5561438827097019/5861768829',
+    'ca-app-pub-5561438827097019/1190703135',
+    '',
+  ];
+
+  /// Native advanced ad unit IDs.
+  static const List<String> nativeAdIdList = [
+    'ca-app-pub-5561438827097019/8759394906',
+    'ca-app-pub-5561438827097019/9125033476',
+  ];
+
+  /// Rewarded ad unit IDs.
+  static const List<String> rewardedAdIdList = [
+    'ca-app-pub-5561438827097019/3507068223',
+    'ca-app-pub-5561438827097019/8408041115',
+  ];
 
   static const _defaultValues = {
-    "interstitial_ad": "ca-app-pub-5561438827097019/9789037444",
-    "native_ad": "ca-app-pub-5561438827097019/8290438738",
-    "rewarded_ad": "ca-app-pub-5561438827097019/6751810564",
-    "show_ads": true
+    "show_ads": true,
   };
+
+  /// List of interstitial ad unit IDs; ads are tried in order until one loads.
+  static List<String> get interstitialAdIds =>
+      useTestAds ? [testInterstitialAd] : List.from(interstitialAdIdList);
+
+  /// List of native ad unit IDs; ads are tried in order until one loads.
+  static List<String> get nativeAdIds =>
+      useTestAds ? [testNativeAd] : List.from(nativeAdIdList);
+
+  /// List of rewarded ad unit IDs; ads are tried in order until one loads.
+  static List<String> get rewardedAdIds =>
+      useTestAds ? [testRewardedAd] : List.from(rewardedAdIdList);
 
   static Future<void> initConfig() async {
     await _config.setConfigSettings(RemoteConfigSettings(
@@ -39,13 +74,6 @@ class Config {
   }
 
   static bool get _showAd => _config.getBool('show_ads');
-
-  static String get nativeAd =>
-      useTestAds ? testNativeAd : _config.getString('native_ad');
-  static String get interstitialAd =>
-      useTestAds ? testInterstitialAd : _config.getString('interstitial_ad');
-  static String get rewardedAd =>
-      useTestAds ? testRewardedAd : _config.getString('rewarded_ad');
 
   static bool get hideAds => !_showAd;
 }

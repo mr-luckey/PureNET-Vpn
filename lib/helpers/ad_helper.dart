@@ -23,12 +23,21 @@ class AdHelper {
   static bool _rewardedAdLoaded = false;
 
   static void precacheInterstitialAd() {
-    log('Precache Interstitial Ad - Id: ${Config.interstitialAd}');
-
     if (Config.hideAds) return;
+    final ids = Config.interstitialAdIds;
+    if (ids.isEmpty) return;
+    _tryPrecacheInterstitialAd(ids, 0);
+  }
 
+  static void _tryPrecacheInterstitialAd(List<String> ids, int index) {
+    if (index >= ids.length) {
+      log('All interstitial ad IDs failed to load');
+      return;
+    }
+    final adUnitId = ids[index];
+    log('Precache Interstitial Ad - Id: $adUnitId (${index + 1}/${ids.length})');
     InterstitialAd.load(
-      adUnitId: Config.interstitialAd,
+      adUnitId: adUnitId,
       request: AdRequest(),
       adLoadCallback: InterstitialAdLoadCallback(
         onAdLoaded: (ad) {
@@ -42,7 +51,8 @@ class AdHelper {
         },
         onAdFailedToLoad: (err) {
           _resetInterstitialAd();
-          log('Failed to load an interstitial ad: ${err.message}');
+          log('Failed to load interstitial ad: ${err.message}, trying next ID...');
+          _tryPrecacheInterstitialAd(ids, index + 1);
         },
       ),
     );
@@ -55,9 +65,13 @@ class AdHelper {
   }
 
   static void showInterstitialAd({required VoidCallback onComplete}) {
-    log('Interstitial Ad Id: ${Config.interstitialAd}');
-
     if (Config.hideAds) {
+      onComplete();
+      return;
+    }
+
+    final ids = Config.interstitialAdIds;
+    if (ids.isEmpty) {
       onComplete();
       return;
     }
@@ -76,9 +90,24 @@ class AdHelper {
     }
 
     MyDialogs.showProgress();
+    _tryShowInterstitialAd(ids, 0, onComplete);
+  }
 
+  static void _tryShowInterstitialAd(
+    List<String> ids,
+    int index,
+    VoidCallback onComplete,
+  ) {
+    if (index >= ids.length) {
+      Get.back();
+      log('All interstitial ad IDs failed to load');
+      onComplete();
+      return;
+    }
+    final adUnitId = ids[index];
+    log('Interstitial Ad Id: $adUnitId (${index + 1}/${ids.length})');
     InterstitialAd.load(
-      adUnitId: Config.interstitialAd,
+      adUnitId: adUnitId,
       request: AdRequest(),
       adLoadCallback: InterstitialAdLoadCallback(
         onAdLoaded: (ad) {
@@ -93,21 +122,29 @@ class AdHelper {
           ad.show();
         },
         onAdFailedToLoad: (err) {
-          Get.back();
-          log('Failed to load an interstitial ad: ${err.message}');
-          onComplete();
+          log('Failed to load interstitial ad: ${err.message}, trying next ID...');
+          _tryShowInterstitialAd(ids, index + 1, onComplete);
         },
       ),
     );
   }
 
   static void precacheNativeAd() {
-    log('Precache Native Ad - Id: ${Config.nativeAd}');
-
     if (Config.hideAds) return;
+    final ids = Config.nativeAdIds;
+    if (ids.isEmpty) return;
+    _tryPrecacheNativeAd(ids, 0);
+  }
 
+  static void _tryPrecacheNativeAd(List<String> ids, int index) {
+    if (index >= ids.length) {
+      log('All native ad IDs failed to load');
+      return;
+    }
+    final adUnitId = ids[index];
+    log('Precache Native Ad - Id: $adUnitId (${index + 1}/${ids.length})');
     _nativeAd = NativeAd(
-        adUnitId: Config.nativeAd,
+        adUnitId: adUnitId,
         listener: NativeAdListener(
           onAdLoaded: (ad) {
             log('$NativeAd loaded.');
@@ -115,7 +152,8 @@ class AdHelper {
           },
           onAdFailedToLoad: (ad, error) {
             _resetNativeAd();
-            log('$NativeAd failed to load: $error');
+            log('NativeAd failed to load: $error, trying next ID...');
+            _tryPrecacheNativeAd(ids, index + 1);
           },
         ),
         request: const AdRequest(),
@@ -131,9 +169,10 @@ class AdHelper {
   }
 
   static NativeAd? loadNativeAd({required NativeAdController adController}) {
-    log('Native Ad Id: ${Config.nativeAd}');
-
     if (Config.hideAds) return null;
+
+    final ids = Config.nativeAdIds;
+    if (ids.isEmpty) return null;
 
     if (_nativeAdLoaded && _nativeAd != null) {
       final ad = _nativeAd!;
@@ -145,8 +184,23 @@ class AdHelper {
       return ad;
     }
 
+    _tryLoadNativeAd(ids, 0, adController);
+    return null;
+  }
+
+  static void _tryLoadNativeAd(
+    List<String> ids,
+    int index,
+    NativeAdController adController,
+  ) {
+    if (index >= ids.length) {
+      log('All native ad IDs failed to load');
+      return;
+    }
+    final adUnitId = ids[index];
+    log('Native Ad Id: $adUnitId (${index + 1}/${ids.length})');
     final ad = NativeAd(
-        adUnitId: Config.nativeAd,
+        adUnitId: adUnitId,
         listener: NativeAdListener(
           onAdLoaded: (ad) {
             log('$NativeAd loaded.');
@@ -156,8 +210,11 @@ class AdHelper {
             precacheNativeAd();
           },
           onAdFailedToLoad: (ad, error) {
-            _resetNativeAd();
-            log('$NativeAd failed to load: $error');
+            adController.ad?.dispose();
+            adController.ad = null;
+            adController.adLoaded.value = false;
+            log('NativeAd failed to load: $error, trying next ID...');
+            _tryLoadNativeAd(ids, index + 1, adController);
           },
         ),
         request: const AdRequest(),
@@ -165,16 +222,25 @@ class AdHelper {
             NativeTemplateStyle(templateType: TemplateType.small));
     adController.ad = ad;
     ad.load();
-    return ad;
   }
 
   static void precacheRewardedAd() {
-    log('Precache Rewarded Ad - Id: ${Config.rewardedAd}');
     if (Config.hideAds) return;
     if (_rewardedAdLoaded && _rewardedAd != null) return;
+    final ids = Config.rewardedAdIds;
+    if (ids.isEmpty) return;
+    _tryPrecacheRewardedAd(ids, 0);
+  }
 
+  static void _tryPrecacheRewardedAd(List<String> ids, int index) {
+    if (index >= ids.length) {
+      log('All rewarded ad IDs failed to load');
+      return;
+    }
+    final adUnitId = ids[index];
+    log('Precache Rewarded Ad - Id: $adUnitId (${index + 1}/${ids.length})');
     RewardedAd.load(
-      adUnitId: Config.rewardedAd,
+      adUnitId: adUnitId,
       request: AdRequest(),
       rewardedAdLoadCallback: RewardedAdLoadCallback(
         onAdLoaded: (ad) {
@@ -184,7 +250,8 @@ class AdHelper {
         },
         onAdFailedToLoad: (err) {
           _resetRewardedAd();
-          log('Failed to load rewarded ad: ${err.message}');
+          log('Failed to load rewarded ad: ${err.message}, trying next ID...');
+          _tryPrecacheRewardedAd(ids, index + 1);
         },
       ),
     );
@@ -200,10 +267,14 @@ class AdHelper {
     required VoidCallback onComplete,
     VoidCallback? onSkipped,
   }) {
-    log('Rewarded Ad Id: ${Config.rewardedAd}');
-
     if (Config.hideAds) {
       onComplete();
+      return;
+    }
+
+    final ids = Config.rewardedAdIds;
+    if (ids.isEmpty) {
+      onSkipped?.call();
       return;
     }
 
@@ -225,9 +296,25 @@ class AdHelper {
     }
 
     MyDialogs.showProgress();
+    _tryShowRewardedAd(ids, 0, onComplete, onSkipped);
+  }
 
+  static void _tryShowRewardedAd(
+    List<String> ids,
+    int index,
+    VoidCallback onComplete,
+    VoidCallback? onSkipped,
+  ) {
+    if (index >= ids.length) {
+      Get.back();
+      log('All rewarded ad IDs failed to load');
+      onSkipped?.call();
+      return;
+    }
+    final adUnitId = ids[index];
+    log('Rewarded Ad Id: $adUnitId (${index + 1}/${ids.length})');
     RewardedAd.load(
-      adUnitId: Config.rewardedAd,
+      adUnitId: adUnitId,
       request: AdRequest(),
       rewardedAdLoadCallback: RewardedAdLoadCallback(
         onAdLoaded: (ad) {
@@ -244,9 +331,8 @@ class AdHelper {
           });
         },
         onAdFailedToLoad: (err) {
-          Get.back();
-          log('Failed to load rewarded ad: ${err.message}');
-          onSkipped?.call();
+          log('Failed to load rewarded ad: ${err.message}, trying next ID...');
+          _tryShowRewardedAd(ids, index + 1, onComplete, onSkipped);
         },
       ),
     );

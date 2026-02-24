@@ -4,7 +4,7 @@ description: PureNet Vpn Project
 publish_to: 'none'
 
 # App Version
-version: 5.0.0
+version: 12.0.0
 
 environment:
   sdk: ">=3.5.0 <4.0.0"
