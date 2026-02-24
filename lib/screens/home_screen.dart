@@ -26,11 +26,6 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    VpnEngine.vpnStageSnapshot().listen((event) {
-      print('[DEBUG] home_screen: vpnStage event=$event');
-      _controller.vpnState.value = event;
-    });
-
     final _adController = Get.put(NativeAdController(), tag: 'home');
     if (!Config.hideAds &&
         _adController.ad == null &&

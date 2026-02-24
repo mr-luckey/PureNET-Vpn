@@ -82,7 +82,7 @@ public class OpenVPNThread implements Runnable {
             VpnStatus.logException("Starting OpenVPN Thread", e);
             Log.e(TAG, "OpenVPNThread Got " + e.toString());
         } finally {
-            int exitvalue = 0;
+            int exitvalue = mExitValue;
             try {
                 if (mProcess != null) {
                     exitvalue = mProcess.waitFor();
@@ -130,7 +130,7 @@ public class OpenVPNThread implements Runnable {
 
             if (!mNoProcessExitStatus)
                 mService.openvpnStopped();
-            Log.i(TAG, "Exiting");
+            Log.i(TAG, "Exiting (exitCode=" + exitvalue + ", outputLines=" + mOutputLineCount + ")");
         }
     }
 
@@ -142,6 +142,9 @@ public class OpenVPNThread implements Runnable {
         }
         return true;
     }
+
+    private int mExitValue = -999;
+    private int mOutputLineCount = 0;
 
     private void startOpenVPNThreadArgs(String[] argv) {
         LinkedList<String> argvlist = new LinkedList<String>();
@@ -157,11 +160,15 @@ public class OpenVPNThread implements Runnable {
         pb.environment().put("TMPDIR", mTmpDir);
 
         // Run from config directory so OpenVPN can resolve relative paths
-        pb.directory(new java.io.File(mTmpDir));
+        java.io.File cwd = new java.io.File(mTmpDir);
+        pb.directory(cwd);
+        if (!cwd.exists()) {
+            Log.e(TAG, "[DEBUG] OpenVPN CWD does not exist: " + mTmpDir);
+        }
 
         pb.redirectErrorStream(true);
         try {
-            Log.i(TAG, "[DEBUG] OpenVPNThread: ProcessBuilder.start() LD_LIBRARY_PATH=" + lbpath);
+            Log.i(TAG, "[DEBUG] OpenVPNThread: ProcessBuilder.start() LD_LIBRARY_PATH=" + lbpath + " CWD=" + mTmpDir);
             mProcess = pb.start();
             // Do NOT close stdin - some OpenVPN builds exit when stdin is closed (EOF)
             InputStream in = mProcess.getInputStream();
@@ -171,11 +178,17 @@ public class OpenVPNThread implements Runnable {
             while (true) {
                 String logline = br.readLine();
                 if (logline == null) {
-                    int exitVal = -999;
                     try {
-                        if (mProcess != null) exitVal = mProcess.exitValue();
+                        if (mProcess != null) {
+                            mExitValue = mProcess.exitValue();
+                        }
                     } catch (IllegalThreadStateException e) { /* still running */ }
-                    Log.i(TAG, "[DEBUG] OpenVPN process closed output after " + lineCount + " lines, exitValue=" + exitVal);
+                    mOutputLineCount = lineCount;
+                    Log.i(TAG, "[DEBUG] OpenVPN process closed output after " + lineCount + " lines, exitValue=" + mExitValue);
+                    if (lineCount == 0) {
+                        Log.e(TAG, "[DEBUG] OpenVPN produced NO output before exiting. ExitCode=" + mExitValue
+                                + ". Check: 1) config file exists and is valid 2) " + argv[0] + " is correct for this device ABI.");
+                    }
                     return;
                 }
                 lineCount++;

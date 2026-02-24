@@ -769,6 +769,8 @@ public class VpnProfile implements Serializable, Cloneable {
         Intent intent = new Intent(context, OpenVPNService.class);
         intent.putExtra(prefix + ".profileUUID", mUuid.toString());
         intent.putExtra(prefix + ".profileVersion", mVersion);
+        // Keep notification visible (speed + server) until VPN disconnects, even if app is closed
+        // intent.putExtra(OpenVPNService.ALWAYS_SHOW_NOTIFICATION, true);
         return intent;
     }
 

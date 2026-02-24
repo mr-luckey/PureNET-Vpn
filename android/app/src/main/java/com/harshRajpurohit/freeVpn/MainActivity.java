@@ -185,9 +185,11 @@ public class MainActivity extends FlutterActivity {
                     break;
                 case "refresh":
                     updateVPNStages();
+                    result.success(null);
                     break;
                 case "refresh_status":
                     updateVPNStatus();
+                    result.success(null);
                     break;
                 case "stage":
                     result.success(OpenVPNService.getStatus());
@@ -197,6 +199,7 @@ public class MainActivity extends FlutterActivity {
                         Intent intent = new Intent(Settings.ACTION_VPN_SETTINGS);
                         startActivity(intent);
                     }
+                    result.success(null);
                     break;
             }
         });

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -15,6 +16,41 @@ class HomeController extends GetxController {
   final Rx<Vpn> vpn = Pref.vpn.obs;
 
   final vpnState = VpnEngine.vpnDisconnected.obs;
+
+  StreamSubscription<String>? _vpnStageSubscription;
+
+  @override
+  void onInit() {
+    super.onInit();
+    _subscribeToVpnStage();
+    _syncVpnStateFromNative();
+  }
+
+  @override
+  void onClose() {
+    _vpnStageSubscription?.cancel();
+    super.onClose();
+  }
+
+  /// Subscribe to VPN stage stream so UI updates when state changes (connect/disconnect).
+  void _subscribeToVpnStage() {
+    _vpnStageSubscription?.cancel();
+    _vpnStageSubscription = VpnEngine.vpnStageSnapshot().listen((event) {
+      if (event.isNotEmpty) {
+        vpnState.value = event.toLowerCase();
+      }
+    });
+  }
+
+  /// Sync UI with actual VPN state from native (fixes "Tap to Connect" when app was killed but VPN still running).
+  void _syncVpnStateFromNative() {
+    VpnEngine.stage().then((stage) {
+      if (stage != null && stage.isNotEmpty) {
+        vpnState.value = stage.toLowerCase();
+      }
+    });
+    VpnEngine.refreshStage();
+  }
 
   void connectToVpn() async {
     print('[DEBUG] connectToVpn: ENTRY - vpnState=${vpnState.value}, country=${vpn.value.countryLong}');
