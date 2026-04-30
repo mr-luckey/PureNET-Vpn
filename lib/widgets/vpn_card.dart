@@ -3,12 +3,12 @@ import 'dart:math';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import '../controllers/home_controller.dart';
-import '../helpers/pref.dart';
 import '../main.dart';
 import '../models/vpn.dart';
-import '../services/vpn_engine.dart';
+import '../services/theme_service.dart';
 
 class VpnCard extends StatelessWidget {
   final Vpn vpn;
@@ -20,69 +20,92 @@ class VpnCard extends StatelessWidget {
     final controller = Get.find<HomeController>();
 
     return Card(
-        elevation: 5,
-        margin: EdgeInsets.symmetric(vertical: mq.height * .01),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-        child: InkWell(
-          onTap: () {
-            controller.vpn.value = vpn;
-            Pref.vpn = vpn;
-            Get.back();
-
-            if (controller.vpnState.value == VpnEngine.vpnConnected) {
-              VpnEngine.stopVpn();
-              Future.delayed(
-                  Duration(seconds: 2), () => controller.connectToVpn());
-            } else {
-              controller.connectToVpn();
-            }
-          },
-          borderRadius: BorderRadius.circular(15),
-          child: ListTile(
-            tileColor: Colors.white,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-            leading: Container(
-              padding: EdgeInsets.all(.5),
-              decoration: BoxDecoration(
-                  border: Border.all(color: Color(0xFF004AAD)),
-                  borderRadius: BorderRadius.circular(5)),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(5),
-                child: Image.asset(
-                    'assets/flags/${vpn.countryShort.toLowerCase()}.png',
-                    height: 40,
-                    width: mq.width * .15,
-                    fit: BoxFit.cover),
-              ),
-            ),
-            title: Text(vpn.countryLong,
-                style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                    color: Color(0xFF004AAD))),
-            subtitle: Row(
-              children: [
-                Icon(Icons.speed_rounded, color: Color(0xFF004AAD), size: 20),
-                SizedBox(width: 4),
-                Text(_formatBytes(vpn.speed, 1),
-                    style: TextStyle(color: Color(0xFF004AAD), fontSize: 13))
-              ],
-            ),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(vpn.numVpnSessions.toString(),
-                    style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                        color: Theme.of(context).lightText)),
-                SizedBox(width: 4),
-                Icon(CupertinoIcons.person_3, color: Colors.blue),
-              ],
-            ),
+      elevation: 4,
+      margin: EdgeInsets.symmetric(vertical: mq.height * .012),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      color: AppTheme.cardBackground,
+      child: InkWell(
+        onTap: () {
+          Get.back();
+          controller.connectToServer(vpn);
+        },
+        borderRadius: BorderRadius.circular(18),
+        child: Container(
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(18),
+            color: AppTheme.cardBackground,
           ),
-        ));
+          child: Row(
+            children: [
+              Container(
+                padding: EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  border: Border.all(color: AppTheme.accentBlue, width: 2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: SvgPicture.asset(
+                    'assets/flags/${vpn.countryShort.toLowerCase()}.svg',
+                    height: 45,
+                    width: mq.width * .15,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+              SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      vpn.countryLong,
+                      style: AppTheme.comfortaaTextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.textPrimary,
+                      ),
+                    ),
+                    SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Icon(Icons.speed_rounded,
+                            color: AppTheme.accentBlue, size: 18),
+                        SizedBox(width: 4),
+                        Text(
+                          _formatBytes(vpn.speed, 1),
+                          style: AppTheme.comfortaaTextStyle(
+                            color: AppTheme.textSecondary,
+                            fontSize: 13,
+                          ),
+                        )
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    vpn.numVpnSessions.toString(),
+                    style: AppTheme.comfortaaTextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.textPrimary,
+                    ),
+                  ),
+                  SizedBox(width: 6),
+                  Icon(CupertinoIcons.person_3,
+                      color: AppTheme.accentBlue, size: 20),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   String _formatBytes(int bytes, int decimals) {

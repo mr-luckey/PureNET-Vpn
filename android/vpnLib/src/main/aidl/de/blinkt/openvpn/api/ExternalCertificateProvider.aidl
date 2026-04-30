@@ -1,6 +1,7 @@
 // ExternalCertificateProvider.aidl
 package de.blinkt.openvpn.api;
 
+import android.os.Bundle;
 
 /*
  * This is very simple interface that is specialised to have only the minimal set of crypto

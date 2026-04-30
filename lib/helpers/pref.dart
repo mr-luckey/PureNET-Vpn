@@ -17,8 +17,15 @@ class Pref {
   static set isDarkMode(bool v) => _box.put('isDarkMode', v);
 
 
-  static Vpn get vpn => Vpn.fromJson(jsonDecode(_box.get('vpn') ?? '{}'));
-  static set vpn(Vpn v) => _box.put('vpn', jsonEncode(v));
+  static Vpn get vpn {
+    final raw = _box.get('vpn');
+    return Vpn.fromJson(jsonDecode((raw ?? '{}')));
+  }
+
+  static set vpn(Vpn v) => _box.put('vpn', jsonEncode(v.toJson()));
+
+  static bool get autoConnectEnabled => _box.get('autoConnectEnabled') ?? false;
+  static set autoConnectEnabled(bool v) => _box.put('autoConnectEnabled', v);
 
 
   static List<Vpn> get vpnList {

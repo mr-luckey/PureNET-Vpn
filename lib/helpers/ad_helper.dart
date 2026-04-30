@@ -5,13 +5,19 @@ import 'package:get/get.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import '../controllers/native_ad_controller.dart';
+import 'ad_manager.dart';
 import 'config.dart';
 import 'my_dialogs.dart';
 
 class AdHelper {
+  static final AdManager _adManager = AdManager();
 
   static Future<void> initAds() async {
     await MobileAds.instance.initialize();
+
+    if (!Config.hideAds) {
+      _adManager.initialize();
+    }
   }
 
   static InterstitialAd? _interstitialAd;
@@ -19,8 +25,6 @@ class AdHelper {
 
   static NativeAd? _nativeAd;
   static bool _nativeAdLoaded = false;
-
-
 
   static void precacheInterstitialAd() {
     log('Precache Interstitial Ad - Id: ${Config.interstitialAd}');
@@ -32,7 +36,6 @@ class AdHelper {
       request: AdRequest(),
       adLoadCallback: InterstitialAdLoadCallback(
         onAdLoaded: (ad) {
-
           ad.fullScreenContentCallback =
               FullScreenContentCallback(onAdDismissedFullScreenContent: (ad) {
             _resetInterstitialAd();
@@ -76,7 +79,6 @@ class AdHelper {
       request: AdRequest(),
       adLoadCallback: InterstitialAdLoadCallback(
         onAdLoaded: (ad) {
-
           ad.fullScreenContentCallback =
               FullScreenContentCallback(onAdDismissedFullScreenContent: (ad) {
             onComplete();
@@ -91,8 +93,9 @@ class AdHelper {
           log('Failed to load an interstitial ad: ${err.message}');
           onComplete();
         },
-      ),  ); }
-
+      ),
+    );
+  }
 
   static void precacheNativeAd() {
     log('Precache Native Ad - Id: ${Config.nativeAd}');
@@ -112,7 +115,6 @@ class AdHelper {
           },
         ),
         request: const AdRequest(),
-
         nativeTemplateStyle:
             NativeTemplateStyle(templateType: TemplateType.small))
       ..load();
@@ -149,13 +151,10 @@ class AdHelper {
           },
         ),
         request: const AdRequest(),
-
         nativeTemplateStyle:
             NativeTemplateStyle(templateType: TemplateType.small))
       ..load();
   }
-
-
 
   static void showRewardedAd({required VoidCallback onComplete}) {
     log('Rewarded Ad Id: ${Config.rewardedAd}');
@@ -173,7 +172,6 @@ class AdHelper {
       rewardedAdLoadCallback: RewardedAdLoadCallback(
         onAdLoaded: (ad) {
           Get.back();
-
 
           ad.show(
               onUserEarnedReward: (AdWithoutView ad, RewardItem rewardItem) {

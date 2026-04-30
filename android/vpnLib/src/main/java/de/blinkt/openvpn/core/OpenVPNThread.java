@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.LinkedList;
@@ -30,6 +31,9 @@ public class OpenVPNThread implements Runnable {
     private static final String BROKEN_PIE_SUPPORT = "/data/data/de.blinkt.openvpn/cache/pievpn";
     private final static String BROKEN_PIE_SUPPORT2 = "syntax error";
     private static final String TAG = "OpenVPN";
+    private static final long CONNECTION_RETRY_TIMEOUT_MS = 120000;
+    private static final long CONNECTION_RETRY_DELAY_MS = 5000;
+    private static volatile boolean sRetryInProgress = false;
     // 1380308330.240114 18000002 Send to HTTP proxy: 'X-Online-Host: bla.blabla.com'
     private static final Pattern LOG_PATTERN = Pattern.compile("(\\d+).(\\d+) ([0-9a-f])+ (.*)");
     public static final int M_FATAL = (1 << 4);
@@ -56,7 +60,11 @@ public class OpenVPNThread implements Runnable {
     }
 
     public void stopProcess() {
-        mProcess.destroy();
+        if (mProcess != null) {
+            mProcess.destroy();
+        } else {
+            VpnStatus.logWarning("OpenVPN process not initialized; nothing to stop.");
+        }
     }
 
     void setReplaceConnection()
@@ -64,70 +72,67 @@ public class OpenVPNThread implements Runnable {
         mNoProcessExitStatus=true;
     }
 
+    public static boolean isRetryInProgress() {
+        return sRetryInProgress;
+    }
+
     @Override
     public void run() {
-        try {
-            Log.i(TAG, "Starting openvpn");
-            startOpenVPNThreadArgs(mArgv);
-            Log.i(TAG, "OpenVPN process exited");
-        } catch (Exception e) {
-            VpnStatus.logException("Starting OpenVPN Thread", e);
-            Log.e(TAG, "OpenVPNThread Got " + e.toString());
-        } finally {
-            int exitvalue = 0;
+        sRetryInProgress = true;
+        final long firstAttemptTimestamp = System.currentTimeMillis();
+        int attempt = 0;
+        boolean shouldRetry;
+        do {
+            shouldRetry = false;
+            attempt++;
             try {
-                if (mProcess != null)
-                    exitvalue = mProcess.waitFor();
-            } catch (IllegalThreadStateException ite) {
-                VpnStatus.logError("Illegal Thread state: " + ite.getLocalizedMessage());
-            } catch (InterruptedException ie) {
-                VpnStatus.logError("InterruptedException: " + ie.getLocalizedMessage());
+                Log.i(TAG, "Starting openvpn (attempt " + attempt + ")");
+                startOpenVPNThreadArgs(mArgv);
+                Log.i(TAG, "OpenVPN process exited");
+            } catch (Exception e) {
+                VpnStatus.logException("Starting OpenVPN Thread", e);
+                Log.e(TAG, "OpenVPNThread Got " + e.toString());
             }
-            if (exitvalue != 0) {
-                VpnStatus.logError("Process exited with exit value " + exitvalue);
-                if (mBrokenPie) {
-                    /* This will probably fail since the NoPIE binary is probably not written */
-                    String[] noPieArgv = VPNLaunchHelper.replacePieWithNoPie(mArgv);
 
-                    // We are already noPIE, nothing to gain
-                    if (!noPieArgv.equals(mArgv)) {
-                        mArgv = noPieArgv;
-                        VpnStatus.logInfo("PIE Version could not be executed. Trying no PIE version");
-                        run();
-                    }
-
+            boolean timeoutReached = System.currentTimeMillis() - firstAttemptTimestamp >= CONNECTION_RETRY_TIMEOUT_MS;
+            boolean vpnActive = VpnStatus.isVPNActive();
+            if (!timeoutReached && !vpnActive) {
+                shouldRetry = true;
+                VpnStatus.updateStateString("RECONNECTING", "Retrying to reach server.", R.string.state_reconnecting, ConnectionStatus.LEVEL_CONNECTING_NO_SERVER_REPLY_YET);
+                VpnStatus.logWarning("OpenVPN process exited early. Retrying connection attempt (" + attempt + ").");
+                boolean needsImmediateRetry = cleanupAfterProcess(false);
+                if (needsImmediateRetry) {
+                    continue;
                 }
-
-            }
-
-            if (!mNoProcessExitStatus)
-                VpnStatus.updateStateString("NOPROCESS", "No process running.", R.string.state_noprocess, ConnectionStatus.LEVEL_NOTCONNECTED);
-
-            if (mDumpPath != null) {
                 try {
-                    BufferedWriter logout = new BufferedWriter(new FileWriter(mDumpPath + ".log"));
-                    SimpleDateFormat timeformat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.GERMAN);
-                    for (LogItem li : VpnStatus.getlogbuffer()) {
-                        String time = timeformat.format(new Date(li.getLogtime()));
-                        logout.write(time + " " + li.getString(mService) + "\n");
-                    }
-                    logout.close();
-                    VpnStatus.logError(R.string.minidump_generated);
-                } catch (IOException e) {
-                    VpnStatus.logError("Writing minidump log: " + e.getLocalizedMessage());
+                    Thread.sleep(CONNECTION_RETRY_DELAY_MS);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    shouldRetry = false;
+                }
+            } else {
+                if (!vpnActive) {
+                    VpnStatus.logError("Connection timed out after 2 minutes. Please try another server.");
+                }
+                boolean needsImmediateRetry = cleanupAfterProcess(true);
+                if (needsImmediateRetry) {
+                    shouldRetry = true;
                 }
             }
-
-            if (!mNoProcessExitStatus)
-                mService.openvpnStopped();
-            Log.i(TAG, "Exiting");
-        }
+        } while (shouldRetry);
+        sRetryInProgress = false;
     }
 
     public static boolean stop(){
-        mService.openvpnStopped();
-        mProcess.destroy();
-        return true;
+        if (mService != null) {
+            mService.openvpnStopped();
+        }
+        if (mProcess != null) {
+            mProcess.destroy();
+            return true;
+        }
+        VpnStatus.logWarning("Stop called but OpenVPN process was null.");
+        return false;
     }
 
     private void startOpenVPNThreadArgs(String[] argv) {
@@ -204,6 +209,55 @@ public class OpenVPNThread implements Runnable {
         }
 
 
+    }
+
+    private boolean cleanupAfterProcess(boolean notifyServiceStop) {
+        boolean needsImmediateRetry = false;
+        int exitvalue = 0;
+        try {
+            if (mProcess != null)
+                exitvalue = mProcess.waitFor();
+        } catch (IllegalThreadStateException ite) {
+            VpnStatus.logError("Illegal Thread state: " + ite.getLocalizedMessage());
+        } catch (InterruptedException ie) {
+            VpnStatus.logError("InterruptedException: " + ie.getLocalizedMessage());
+            Thread.currentThread().interrupt();
+        }
+        if (exitvalue != 0) {
+            VpnStatus.logError("Process exited with exit value " + exitvalue);
+            if (mBrokenPie) {
+                String[] noPieArgv = VPNLaunchHelper.replacePieWithNoPie(mArgv);
+                if (!Arrays.equals(noPieArgv, mArgv)) {
+                    mArgv = noPieArgv;
+                    VpnStatus.logInfo("PIE Version could not be executed. Trying no PIE version");
+                    needsImmediateRetry = true;
+                    notifyServiceStop = false;
+                }
+            }
+        }
+
+        if (notifyServiceStop && !mNoProcessExitStatus)
+            VpnStatus.updateStateString("NOPROCESS", "No process running.", R.string.state_noprocess, ConnectionStatus.LEVEL_NOTCONNECTED);
+
+        if (notifyServiceStop && mDumpPath != null) {
+            try {
+                BufferedWriter logout = new BufferedWriter(new FileWriter(mDumpPath + ".log"));
+                SimpleDateFormat timeformat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.GERMAN);
+                for (LogItem li : VpnStatus.getlogbuffer()) {
+                    String time = timeformat.format(new Date(li.getLogtime()));
+                    logout.write(time + " " + li.getString(mService) + "\n");
+                }
+                logout.close();
+                VpnStatus.logError(R.string.minidump_generated);
+            } catch (IOException e) {
+                VpnStatus.logError("Writing minidump log: " + e.getLocalizedMessage());
+            }
+        }
+
+        if (notifyServiceStop && !mNoProcessExitStatus)
+            mService.openvpnStopped();
+        Log.i(TAG, notifyServiceStop ? "Exiting" : "Restarting OpenVPN process shortly");
+        return needsImmediateRetry;
     }
 
     private String genLibraryPath(String[] argv, ProcessBuilder pb) {

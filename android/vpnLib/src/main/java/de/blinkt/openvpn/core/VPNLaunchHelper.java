@@ -24,6 +24,7 @@ public class VPNLaunchHelper {
     private static final String MININONPIEVPN = "nopie_openvpn";
     private static final String MINIPIEVPN = "pie_openvpn";
     private static final String OVPNCONFIGFILE = "android.conf";
+    private static final String[] APP_SUPPORTED_ABIS = new String[]{"arm64-v8a"};
 
 
     private static String writeMiniVPN(Context context) {
@@ -31,17 +32,9 @@ public class VPNLaunchHelper {
         /* Q does not allow executing binaries written in temp directory anymore */
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P)
             return new File(context.getApplicationInfo().nativeLibraryDir, "libovpnexec.so").getPath();
-        String[] abis;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
-            abis = getSupportedABIsLollipop();
-        else
-            //noinspection deprecation
-            abis = new String[]{Build.CPU_ABI, Build.CPU_ABI2};
-
-        if (!nativeAPI.equals(abis[0])) {
-            VpnStatus.logWarning(R.string.abi_mismatch, Arrays.toString(abis), nativeAPI);
-            abis = new String[]{nativeAPI};
-        }
+        String[] abis = getDeviceAbis();
+        String resolvedAbi = resolveExecutableAbi(nativeAPI, abis);
+        abis = new String[]{resolvedAbi};
 
         for (String abi : abis) {
 
@@ -57,6 +50,47 @@ public class VPNLaunchHelper {
     @TargetApi(Build.VERSION_CODES.LOLLIPOP)
     private static String[] getSupportedABIsLollipop() {
         return Build.SUPPORTED_ABIS;
+    }
+
+    private static String[] getDeviceAbis() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            return getSupportedABIsLollipop();
+        }
+        //noinspection deprecation
+        return new String[]{Build.CPU_ABI, Build.CPU_ABI2};
+    }
+
+    private static boolean isAppSupportedAbi(String abi) {
+        if (abi == null) {
+            return false;
+        }
+        for (String supported : APP_SUPPORTED_ABIS) {
+            if (supported.equals(abi)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static String findFirstSupportedAbi(String[] abis) {
+        for (String abi : abis) {
+            if (isAppSupportedAbi(abi)) {
+                return abi;
+            }
+        }
+        return null;
+    }
+
+    private static String resolveExecutableAbi(String nativeAPI, String[] deviceAbis) {
+        if (nativeAPI != null && isAppSupportedAbi(nativeAPI)) {
+            return nativeAPI;
+        }
+        String fallback = findFirstSupportedAbi(deviceAbis);
+        if (fallback != null) {
+            VpnStatus.logWarning(R.string.abi_mismatch, Arrays.toString(deviceAbis), fallback);
+            return fallback;
+        }
+        throw new IllegalStateException("Device ABIs " + Arrays.toString(deviceAbis) + " are not supported by this build");
     }
 
     private static String getMiniVPNExecutableName() {

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-
 import '../main.dart';
+import '../services/theme_service.dart';
 
 class HomeCard extends StatelessWidget {
   final String title, subtitle;
@@ -14,26 +14,55 @@ class HomeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-        width: mq.width * .45,
-        child: Column(
-          children: [
-            icon,
-            const SizedBox(height: 6),
-            Text(title,
-                style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.white)),
-            const SizedBox(height: 6),
-            Text(
-              subtitle,
-              style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w500,
-                  fontSize: 12),
+    return Container(
+      width: mq.width * .42,
+      padding: EdgeInsets.symmetric(vertical: 20, horizontal: 12),
+      decoration: BoxDecoration(
+        color: AppTheme.cardBackground.withOpacity(0.8),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 10,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppTheme.accentBlue.withOpacity(0.2),
+              shape: BoxShape.circle,
             ),
-          ],
-        ));
+            child: icon,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            title,
+            style: AppTheme.comfortaaTextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: AppTheme.textPrimary,
+            ),
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 6),
+          Text(
+            subtitle,
+            style: AppTheme.comfortaaTextStyle(
+              color: AppTheme.textSecondary,
+              fontWeight: FontWeight.w500,
+              fontSize: 12,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
   }
 }

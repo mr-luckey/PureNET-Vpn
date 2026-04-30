@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import '../services/theme_service.dart';
 
 class CountDownTimer extends StatefulWidget {
   final bool startTimer;
@@ -41,6 +42,13 @@ class _CountDownTimerState extends State<CountDownTimer> {
     final seconds = twoDigit(_duration.inSeconds.remainder(60));
     final hours = twoDigit(_duration.inHours.remainder(60));
 
-    return Text('$hours: $minutes: $seconds', style: TextStyle(fontSize: 22));
+    return Text(
+      '$hours:$minutes:$seconds',
+      style: AppTheme.comfortaaTextStyle(
+        fontSize: 24,
+        fontWeight: FontWeight.bold,
+        color: AppTheme.textPrimary,
+      ),
+    );
   }
 }

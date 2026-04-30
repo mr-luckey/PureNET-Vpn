@@ -4,10 +4,10 @@ description: PureNet Vpn Project
 publish_to: 'none'
 
 # App Version
-version: 5.0.0
+version: 7.0.0
 
 environment:
-  sdk: ">=2.18.6 <3.0.0"
+  sdk: ">=3.0.0 <4.0.0"
 
 # App dependencies
 dependencies:
@@ -15,33 +15,36 @@ dependencies:
     sdk: flutter
 
   # Getx for state management
-  get: ^4.6.5
+  get: ^4.7.2
 
   # Cupertino style icons
-  cupertino_icons: ^1.0.2
+  cupertino_icons: ^1.0.8
 
   # For API Call
-  http: ^1.0.0
+  http: ^1.6.0
 
   # Converting CSV data to List
-  csv: ^5.0.2
+  csv: ^6.0.0
 
   # For Lottie Animation
-  lottie: ^2.3.2
+  lottie: ^3.3.2
 
   # For storing data (in local storage) 
   hive: ^2.2.3
   hive_flutter: ^1.1.0
 
   # For integrating ads
-  google_mobile_ads: ^3.0.0
-  flutter_svg: ^2.0.7
+  google_mobile_ads: ^6.0.0
+  flutter_svg: ^2.2.3
 
   # For firebase
-  firebase_core: ^2.14.0
+  firebase_core: ^4.2.1
 
   # For Remote Config
-  firebase_remote_config: ^4.2.3
+  firebase_remote_config: ^6.1.2
+
+  # For Google Fonts (Comfortaa)
+  google_fonts: ^6.2.1
 
 
 dev_dependencies:
@@ -50,6 +53,10 @@ dev_dependencies:
 
   # Change package name  
   # change_app_package_name: ^1.1.0
+
+dependency_overrides:
+  # Fix win32 compatibility with Dart 3.0+
+  win32: ^5.15.0
 
 flutter:
   # Enabling material design

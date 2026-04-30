@@ -7,6 +7,7 @@ package de.blinkt.openvpn.core;
 
 import de.blinkt.openvpn.core.LogItem;
 import de.blinkt.openvpn.core.ConnectionStatus;
+import android.content.Intent;
 
 
 

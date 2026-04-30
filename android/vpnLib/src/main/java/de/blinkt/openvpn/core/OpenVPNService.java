@@ -1266,6 +1266,12 @@ public class OpenVPNService extends VpnService implements StateListener, Callbac
     }
 
     private void doSendBroadcast(String state, ConnectionStatus level) {
+        if (OpenVPNThread.isRetryInProgress()
+                && level == ConnectionStatus.LEVEL_NOTCONNECTED
+                && ("DISCONNECTED".equals(state) || "EXITING".equals(state) || "NOPROCESS".equals(state))) {
+            state = "RECONNECTING";
+            level = ConnectionStatus.LEVEL_CONNECTING_NO_SERVER_REPLY_YET;
+        }
         Intent vpnstatus = new Intent();
         vpnstatus.setAction("de.blinkt.openvpn.VPN_STATUS");
         vpnstatus.putExtra("status", level.toString());

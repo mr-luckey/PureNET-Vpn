@@ -1,0 +1,3 @@
+D:/Playstore/PureNET-Vpn/android/vpnLib/.cxx/Debug/1169294v/arm64-v8a/CMakeFiles/ovpnexec.dir
+D:/Playstore/PureNET-Vpn/android/vpnLib/.cxx/Debug/1169294v/arm64-v8a/CMakeFiles/edit_cache.dir
+D:/Playstore/PureNET-Vpn/android/vpnLib/.cxx/Debug/1169294v/arm64-v8a/CMakeFiles/rebuild_cache.dir

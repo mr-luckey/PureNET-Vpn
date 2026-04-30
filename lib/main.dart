@@ -7,6 +7,7 @@ import 'helpers/ad_helper.dart';
 import 'helpers/config.dart';
 import 'helpers/pref.dart';
 import 'screens/splash_screen.dart';
+import 'services/theme_service.dart';
 
 late Size mq;
 
@@ -35,20 +36,10 @@ class MyApp extends StatelessWidget {
     return GetMaterialApp(
       title: 'PureNET VPN',
       home: SplashScreen(),
-      theme:
-          ThemeData(appBarTheme: AppBarTheme(centerTitle: true, elevation: 3)),
-      themeMode: Pref.isDarkMode ? ThemeMode.dark : ThemeMode.dark,
-      darkTheme: ThemeData(
-          brightness: Brightness.dark,
-          appBarTheme: AppBarTheme(centerTitle: true, elevation: 3)),
+      theme: AppTheme.lightTheme,
+      themeMode: Pref.isDarkMode ? ThemeMode.dark : ThemeMode.light,
+      darkTheme: AppTheme.darkTheme,
       debugShowCheckedModeBanner: false,
     );
   }
-}
-
-extension AppTheme on ThemeData {
-  Color get lightText =>
-      Pref.isDarkMode ? Color(0xFF004AAD) : Color(0xFF004AAD);
-  Color get bottomNav =>
-      Pref.isDarkMode ? Color.fromARGB(255, 40, 39, 39) : Colors.blue;
 }
