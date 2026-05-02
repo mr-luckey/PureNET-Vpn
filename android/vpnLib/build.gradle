@@ -7,7 +7,7 @@ android {
     namespace "de.blinkt.openvpn"
     defaultConfig {
         minSdkVersion 16
-        targetSdkVersion 30
+        targetSdkVersion 36
     }
     buildTypes {
         release {
