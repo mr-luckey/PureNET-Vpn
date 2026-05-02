@@ -9,6 +9,8 @@ import 'config.dart';
 import 'my_dialogs.dart';
 
 class AdHelper {
+  static const Duration _rewardedRetryDelay = Duration(milliseconds: 1200);
+
   static Future<void> initAds() async {
     await MobileAds.instance.initialize();
   }
@@ -21,6 +23,7 @@ class AdHelper {
 
   static RewardedAd? _rewardedAd;
   static bool _rewardedAdLoaded = false;
+  static int _rewardedLoadSession = 0;
 
   static void precacheInterstitialAd() {
     if (Config.hideAds) return;
@@ -227,34 +230,53 @@ class AdHelper {
   static void precacheRewardedAd() {
     if (Config.hideAds) return;
     if (_rewardedAdLoaded && _rewardedAd != null) return;
-    final ids = Config.rewardedAdIds;
+    final ids =
+        Config.rewardedAdIds.where((id) => id.trim().isNotEmpty).toList();
     if (ids.isEmpty) return;
-    _tryPrecacheRewardedAd(ids, 0);
+    _precacheRewardedAdFirstSuccess(ids);
   }
 
-  static void _tryPrecacheRewardedAd(List<String> ids, int index) {
-    if (index >= ids.length) {
-      log('All rewarded ad IDs failed to load');
-      return;
+  static void _precacheRewardedAdFirstSuccess(List<String> ids) {
+    final session = ++_rewardedLoadSession;
+    var firstAdResolved = false;
+    var failureCount = 0;
+
+    for (var i = 0; i < ids.length; i++) {
+      final adUnitId = ids[i];
+      log('Precache Rewarded Ad - Id: $adUnitId (${i + 1}/${ids.length})');
+      RewardedAd.load(
+        adUnitId: adUnitId,
+        request: AdRequest(),
+        rewardedAdLoadCallback: RewardedAdLoadCallback(
+          onAdLoaded: (ad) {
+            if (session != _rewardedLoadSession) {
+              ad.dispose();
+              return;
+            }
+
+            if (!firstAdResolved) {
+              firstAdResolved = true;
+              _resetRewardedAd();
+              _rewardedAd = ad;
+              _rewardedAdLoaded = true;
+              log('RewardedAd precache success with first available ID.');
+              return;
+            }
+
+            ad.dispose();
+          },
+          onAdFailedToLoad: (err) {
+            if (session != _rewardedLoadSession) return;
+            failureCount++;
+            log('Failed to load rewarded ad: ${err.message}');
+            if (failureCount >= ids.length && !firstAdResolved) {
+              _resetRewardedAd();
+              log('All rewarded ad IDs failed to load');
+            }
+          },
+        ),
+      );
     }
-    final adUnitId = ids[index];
-    log('Precache Rewarded Ad - Id: $adUnitId (${index + 1}/${ids.length})');
-    RewardedAd.load(
-      adUnitId: adUnitId,
-      request: AdRequest(),
-      rewardedAdLoadCallback: RewardedAdLoadCallback(
-        onAdLoaded: (ad) {
-          log('RewardedAd loaded.');
-          _rewardedAd = ad;
-          _rewardedAdLoaded = true;
-        },
-        onAdFailedToLoad: (err) {
-          _resetRewardedAd();
-          log('Failed to load rewarded ad: ${err.message}, trying next ID...');
-          _tryPrecacheRewardedAd(ids, index + 1);
-        },
-      ),
-    );
   }
 
   static void _resetRewardedAd() {
@@ -266,13 +288,15 @@ class AdHelper {
   static void showRewardedAd({
     required VoidCallback onComplete,
     VoidCallback? onSkipped,
+    Duration minimumWatchDuration = const Duration(seconds: 45),
   }) {
     if (Config.hideAds) {
       onComplete();
       return;
     }
 
-    final ids = Config.rewardedAdIds;
+    final ids =
+        Config.rewardedAdIds.where((id) => id.trim().isNotEmpty).toList();
     if (ids.isEmpty) {
       onSkipped?.call();
       return;
@@ -282,59 +306,141 @@ class AdHelper {
       final ad = _rewardedAd!;
       _rewardedAd = null;
       _rewardedAdLoaded = false;
-      ad.fullScreenContentCallback = FullScreenContentCallback(
-        onAdDismissedFullScreenContent: (ad) {
-          ad.dispose();
-          precacheRewardedAd();
-          onSkipped?.call();
-        },
+      _showRewardedAdWithMandatoryWatch(
+        ids: ids,
+        ad: ad,
+        onComplete: onComplete,
+        onSkipped: onSkipped,
+        minimumWatchDuration: minimumWatchDuration,
       );
-      ad.show(onUserEarnedReward: (AdWithoutView ad, RewardItem rewardItem) {
-        onComplete();
-      });
       return;
     }
 
     MyDialogs.showProgress();
-    _tryShowRewardedAd(ids, 0, onComplete, onSkipped);
+    _loadAndShowRewardedAdUntilShown(
+      ids: ids,
+      session: ++_rewardedLoadSession,
+      onComplete: onComplete,
+      onSkipped: onSkipped,
+      minimumWatchDuration: minimumWatchDuration,
+    );
   }
 
-  static void _tryShowRewardedAd(
-    List<String> ids,
-    int index,
-    VoidCallback onComplete,
-    VoidCallback? onSkipped,
-  ) {
-    if (index >= ids.length) {
-      Get.back();
-      log('All rewarded ad IDs failed to load');
+  static void _loadAndShowRewardedAdUntilShown({
+    required List<String> ids,
+    required int session,
+    int index = 0,
+    int attempt = 1,
+    required VoidCallback onComplete,
+    required VoidCallback? onSkipped,
+    required Duration minimumWatchDuration,
+  }) {
+    if (session != _rewardedLoadSession || ids.isEmpty || Config.hideAds) {
+      if (Get.isDialogOpen == true) {
+        Get.back();
+      }
       onSkipped?.call();
       return;
     }
+
     final adUnitId = ids[index];
-    log('Rewarded Ad Id: $adUnitId (${index + 1}/${ids.length})');
+    log('Rewarded Ad retry #$attempt with Id: $adUnitId (${index + 1}/${ids.length})');
     RewardedAd.load(
       adUnitId: adUnitId,
       request: AdRequest(),
       rewardedAdLoadCallback: RewardedAdLoadCallback(
         onAdLoaded: (ad) {
-          Get.back();
-          ad.fullScreenContentCallback = FullScreenContentCallback(
-            onAdDismissedFullScreenContent: (ad) {
-              ad.dispose();
-              precacheRewardedAd();
-              onSkipped?.call();
-            },
+          if (session != _rewardedLoadSession) {
+            ad.dispose();
+            return;
+          }
+
+          if (Get.isDialogOpen == true) {
+            Get.back();
+          }
+
+          _showRewardedAdWithMandatoryWatch(
+            ids: ids,
+            ad: ad,
+            onComplete: onComplete,
+            onSkipped: onSkipped,
+            minimumWatchDuration: minimumWatchDuration,
           );
-          ad.show(onUserEarnedReward: (AdWithoutView ad, RewardItem rewardItem) {
-            onComplete();
-          });
         },
         onAdFailedToLoad: (err) {
-          log('Failed to load rewarded ad: ${err.message}, trying next ID...');
-          _tryShowRewardedAd(ids, index + 1, onComplete, onSkipped);
+          if (session != _rewardedLoadSession) return;
+          log('Failed to load rewarded ad: ${err.message}');
+
+          final nextIndex = (index + 1) % ids.length;
+          final nextAttempt = attempt + 1;
+          final delay = nextIndex == 0 ? _rewardedRetryDelay : Duration.zero;
+
+          if (nextIndex == 0) {
+            log('All rewarded IDs failed in this round. Retrying...');
+          }
+
+          Future.delayed(delay, () {
+            _loadAndShowRewardedAdUntilShown(
+              ids: ids,
+              session: session,
+              index: nextIndex,
+              attempt: nextAttempt,
+              onComplete: onComplete,
+              onSkipped: onSkipped,
+              minimumWatchDuration: minimumWatchDuration,
+            );
+          });
         },
       ),
     );
+  }
+
+  static void _showRewardedAdWithMandatoryWatch({
+    required List<String> ids,
+    required RewardedAd ad,
+    required VoidCallback onComplete,
+    required VoidCallback? onSkipped,
+    required Duration minimumWatchDuration,
+  }) {
+    final shownAt = DateTime.now();
+    var rewardEarned = false;
+    var handled = false;
+
+    ad.fullScreenContentCallback = FullScreenContentCallback(
+      onAdDismissedFullScreenContent: (dismissedAd) {
+        dismissedAd.dispose();
+        precacheRewardedAd();
+
+        if (handled) return;
+        handled = true;
+
+        final watchedLongEnough =
+            DateTime.now().difference(shownAt) >= minimumWatchDuration;
+        if (rewardEarned && watchedLongEnough) {
+          onComplete();
+        } else {
+          onSkipped?.call();
+        }
+      },
+      onAdFailedToShowFullScreenContent: (failedAd, error) {
+        failedAd.dispose();
+        _resetRewardedAd();
+        if (handled) return;
+        handled = true;
+        log('Rewarded ad failed to show: ${error.message}');
+        MyDialogs.showProgress();
+        _loadAndShowRewardedAdUntilShown(
+          ids: ids,
+          session: ++_rewardedLoadSession,
+          onComplete: onComplete,
+          onSkipped: onSkipped,
+          minimumWatchDuration: minimumWatchDuration,
+        );
+      },
+    );
+
+    ad.show(onUserEarnedReward: (AdWithoutView ad, RewardItem rewardItem) {
+      rewardEarned = true;
+    });
   }
 }

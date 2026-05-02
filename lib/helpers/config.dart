@@ -38,8 +38,17 @@ class Config {
 
   /// Rewarded ad unit IDs.
   static const List<String> rewardedAdIdList = [
-    'ca-app-pub-5561438827097019/3507068223',
-    'ca-app-pub-5561438827097019/8408041115',
+    'ca-app-pub-5561438827097019/2142272166',
+    'ca-app-pub-5561438827097019/9829190491',
+    'ca-app-pub-5561438827097019/8516108826',
+    'ca-app-pub-5561438827097019/9418126958',
+    'ca-app-pub-5561438827097019/9418126958',
+    'ca-app-pub-5561438827097019/8717305872',
+    'ca-app-pub-5561438827097019/8105045289',
+    'ca-app-pub-5561438827097019/7185791842',
+    'ca-app-pub-5561438827097019/1977697193',
+    'ca-app-pub-5561438827097019/7348383883',
+    'ca-app-pub-5561438827097019/4064278486',
   ];
 
   static const _defaultValues = {
@@ -55,8 +64,9 @@ class Config {
       useTestAds ? [testNativeAd] : List.from(nativeAdIdList);
 
   /// List of rewarded ad unit IDs; ads are tried in order until one loads.
-  static List<String> get rewardedAdIds =>
-      useTestAds ? [testRewardedAd] : List.from(rewardedAdIdList);
+  static List<String> get rewardedAdIds => useTestAds
+      ? List.filled(10, testRewardedAd)
+      : List.from(rewardedAdIdList);
 
   static Future<void> initConfig() async {
     await _config.setConfigSettings(RemoteConfigSettings(

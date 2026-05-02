@@ -10,7 +10,6 @@ import '../models/vpn.dart';
 import '../models/vpn_config.dart';
 import '../screens/location_screen.dart';
 import '../services/vpn_engine.dart';
-import '../widgets/connect_ad_dialog.dart';
 
 class HomeController extends GetxController {
   final Rx<Vpn> vpn = Pref.vpn.obs;
@@ -72,27 +71,23 @@ class HomeController extends GetxController {
           password: 'vpn',
           config: config);
 
-      Get.dialog(
-        ConnectAdDialog(
-          onWatchAd: () {
-            AdHelper.showRewardedAd(
-              onComplete: () async {
-                await VpnEngine.startVpn(vpnConfig);
-              },
-              onSkipped: () {},
-            );
-          },
-          onConnectWithAd: () {
-            AdHelper.showInterstitialAd(onComplete: () async {
-              await VpnEngine.startVpn(vpnConfig);
-            });
-          },
-        ),
+      AdHelper.showRewardedAd(
+        minimumWatchDuration: const Duration(seconds: 45),
+        onComplete: () async {
+          await VpnEngine.startVpn(vpnConfig);
+        },
+        onSkipped: () {},
       );
     } else {
-      print('[DEBUG] connectToVpn: Calling VpnEngine.stopVpn()');
-      await VpnEngine.stopVpn();
-      print('[DEBUG] connectToVpn: VpnEngine.stopVpn() completed');
+      AdHelper.showRewardedAd(
+        minimumWatchDuration: const Duration(seconds: 45),
+        onComplete: () async {
+          print('[DEBUG] connectToVpn: Calling VpnEngine.stopVpn()');
+          await VpnEngine.stopVpn();
+          print('[DEBUG] connectToVpn: VpnEngine.stopVpn() completed');
+        },
+        onSkipped: () {},
+      );
     }
   }
 
